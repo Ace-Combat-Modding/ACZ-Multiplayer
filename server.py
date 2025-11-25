@@ -1,7 +1,20 @@
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
+import json
 
 class GameProtocol(Protocol):
+
+    def bytes_to_json(self, data: bytes) -> dict:
+        '''
+        Converts bytes received from the client into a JSON object (dict).
+        Raises ValueError if the data is not valid JSON.
+        '''
+        try:
+            text = data.decode("utf-8")     # bytes → string
+            return json.loads(text)         # string → dict
+        except Exception as e:
+            print("JSON decode error:", e)
+            return {'': ''}
 
     def connectionMade(self):
         print("Client connected:", self.transport.getPeer())
@@ -10,8 +23,25 @@ class GameProtocol(Protocol):
     def dataReceived(self, data):
         # Relay to all other clients
         for client in self.factory.clients:
-            if True:#client is not self:
-                client.transport.write(data)
+            if client is not self:
+                pass
+            else:
+                conv_data = self.bytes_to_json(data)
+                if conv_data['entity'] == 'player':
+                    pass
+                    new_px = float(conv_data['px']) + 100
+                    
+                    packet = {
+                        'entity': 'pixy',
+                        'px': new_px, # Returns pixy a bit offset from the player
+                        'py': conv_data['py'],
+                        'altitude': conv_data['altitude'],
+                    }
+
+                    encoded = json.dumps(packet).encode('utf-8')
+                    client.transport.write(encoded)
+            
+            
 
     def connectionLost(self, reason):
         print("Client disconnected:", reason)
@@ -25,3 +55,5 @@ factory = GameFactory()
 reactor.listenTCP(1234, factory)
 print("Server running on port 1234")
 reactor.run()
+
+
