@@ -1,0 +1,4 @@
+# Commands for packaging the files with PyInstaller:
+
+pyinstaller client.py --onefile
+pyinstaller server.py --onefile
