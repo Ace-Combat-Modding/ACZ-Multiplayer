@@ -3,7 +3,9 @@ from twisted.internet import reactor
 import json
 
 class GameProtocol(Protocol):
-
+    factory = None  # type: GameFactory # type: ignore
+    transport = None  # type: ITransport # type: ignore
+    
     def bytes_to_json(self, data: bytes) -> dict:
         '''
         Converts bytes received from the client into a JSON object (dict).
@@ -18,7 +20,7 @@ class GameProtocol(Protocol):
 
     def connectionMade(self):
         print("Client connected:", self.transport.getPeer())
-        self.factory.clients.append(self)
+        self.factory.clients.append(self) # type: ignore
 
     def dataReceived(self, data):
         # Relay to all other clients
@@ -45,15 +47,15 @@ class GameProtocol(Protocol):
 
     def connectionLost(self, reason):
         print("Client disconnected:", reason)
-        self.factory.clients.remove(self)
+        self.factory.clients.remove(self) # type: ignore
 
 class GameFactory(Factory):
     protocol = GameProtocol
     clients = []
 
 factory = GameFactory()
-reactor.listenTCP(1234, factory)
+reactor.listenTCP(1234, factory) # type: ignore
 print("Server running on port 1234")
-reactor.run()
+reactor.run() # type: ignore
 
 
