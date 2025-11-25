@@ -84,13 +84,17 @@ class GameLatch():
         if aircraft != None:
             address = aircraft.get_address(field)
             return self.PM_SESSION.read_float(address)
-
         else:
             return None
-    
     def get_player_data(self, field:str):
         return self.get_aircaft_data(self.player_entity, field)
     
+    def set_aircaft_data_float(self, value, aircraft:Aircraft, field:str):
+        if aircraft == None:
+            return None
+        
+        address = aircraft.get_address(field)
+        self.PM_SESSION.write_float(value=value,address=address)
     pass
 
 
