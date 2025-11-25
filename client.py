@@ -4,6 +4,7 @@ import time
 
 import game_latch as gl
 
+CLIENT_NAME = 'Alpha'
 TICK_RATE = 5  # ticks per second
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 1234
@@ -45,13 +46,13 @@ class GameClient(protocol.Protocol):
 
         # Example: send a JSON state packet
         packet = {
-            #"timestamp": time.time(),
-            "px": LATCH.get_player_data('pos_east_west'),
-            "py": LATCH.get_player_data('pos_north_south'),
-            "altitude": LATCH.get_player_data('altitude'),
+            'entity': 'player',
+            'px': LATCH.get_player_data('pos_east_west'),
+            'py': LATCH.get_player_data('pos_north_south'),
+            'altitude': LATCH.get_player_data('altitude'),
         }
 
-        encoded = json.dumps(packet).encode("utf-8")
+        encoded = json.dumps(packet).encode('utf-8')
         self.transport.write(encoded)
 
 
@@ -59,14 +60,14 @@ class GameClientFactory(protocol.ClientFactory):
     protocol = GameClient
 
     def clientConnectionFailed(self, connector, reason):
-        print("Connection failed:", reason)
+        print('Connection failed:', reason)
         reactor.stop()
 
     def clientConnectionLost(self, connector, reason):
-        print("Connection lost:", reason)
+        print('Connection lost:', reason)
         reactor.stop()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     reactor.connectTCP(SERVER_HOST, SERVER_PORT, GameClientFactory())
     reactor.run()
