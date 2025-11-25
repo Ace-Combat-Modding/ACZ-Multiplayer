@@ -29,6 +29,10 @@ class Aircraft:
 class GameLatch():
     def __init__(self, process_name):
         self.PM_SESSION = pm.Pymem(process_name)
+        self.detect()
+        
+        self.player_entity:Aircraft
+        self.pixy_entity:Aircraft
 
     def find_earlier_address(self, add_compare, list_compare):
         '''Finds in a 'list_compare' the address the biggest number before 'add_compare' '''
@@ -55,30 +59,46 @@ class GameLatch():
 
         
         # Search for player struct start
+        player_airc = None
         player_objstring_add = self.PM_SESSION.pattern_scan_all(player_objstring_pattern)
         player_structstart_add = self.find_earlier_address(player_objstring_add, all_plane_struct_begins_add)
         player_airc = Aircraft(player_structstart_add, player_objstring_add)
-        player_altitude = self.PM_SESSION.read_float(player_airc.get_address('altitude'))
-        print(f'Player struct: {hex(player_structstart_add)} | altitude: {player_altitude}') # type: ignore
+        #player_altitude = self.PM_SESSION.read_float(player_airc.get_address('altitude'))
+        #print(f'Player struct: {hex(player_structstart_add)} | altitude: {player_altitude}') # type: ignore
+        self.player_entity = player_airc # Assign to member variable
         
         
         # Only proceed with Pixy's data if he is present in the map
         # TODO: Do the same to PJ later
+        pixy_airc = None
         pixy_objstring_add = self.PM_SESSION.pattern_scan_all(pixy_objstring_pattern)
         if pixy_objstring_add != None:
             pixy_structstart_add = self.find_earlier_address(pixy_objstring_add, all_plane_struct_begins_add)
             pixy_airc = Aircraft(pixy_structstart_add, player_objstring_add)
-            pixy_altitude = self.PM_SESSION.read_float(pixy_airc.get_address('altitude'))
-            print(f'Pixy struct: {hex(pixy_structstart_add)} | altitude: {pixy_altitude}') # type: ignore
+            #pixy_altitude = self.PM_SESSION.read_float(pixy_airc.get_address('altitude'))
+            #print(f'Pixy struct: {hex(pixy_structstart_add)} | altitude: {pixy_altitude}') # type: ignore
+            self.pixy_entity = pixy_airc # Assign to member variable        
+        
 
-        pass
+    def get_aircaft_data(self, aircraft:Aircraft, field:str):
+        if aircraft != None:
+            address = aircraft.get_address(field)
+            return self.PM_SESSION.read_float(address)
 
-
+        else:
+            return None
+    
+    def get_player_data(self, field:str):
+        return self.get_aircaft_data(self.player_entity, field)
+    
+    pass
 
 
 
 if __name__ == '__main__':
     GAME_PROCESS_NAME = "pcsx2.exe"
     latch = GameLatch(process_name=GAME_PROCESS_NAME)
-    latch.detect()
+    
+    print(f'Player Altitude: {latch.get_player_data('altitude')}')
+    
 
