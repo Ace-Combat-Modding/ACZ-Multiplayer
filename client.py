@@ -4,7 +4,7 @@ import time
 
 import game_latch as gl
 
-CLIENT_ID = -1
+#CLIENT_NAME = 'UNNAMED'
 TICK_RATE = 60  # ticks per second
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 1234
@@ -13,9 +13,23 @@ GAME_PROCESS_NAME = "pcsx2.exe"
 LATCH = gl.GameLatch(process_name=GAME_PROCESS_NAME)
 
 class GameClient(protocol.Protocol):
-    def connectionMade(self):
-        print("Connected to server.")
+    factory = None  # type: GameClientFactory # type: ignore
+    transport = None  # type: ITransport # type: ignore
 
+    def __init__(self):
+        self.handshaked:bool = False
+        self.session_id = ''
+
+    def connectionMade(self):
+        print("Connecting to server...")
+
+        # Start the join loop
+        self.join_loop = task.LoopingCall(self.server_join_setup)
+        self.join_loop.start(1.0 / 5)
+
+        
+        
+        print("Connected to server!")
         # Start the game loop
         self.loop = task.LoopingCall(self.game_tick)
         self.loop.start(1.0 / TICK_RATE)
@@ -25,27 +39,28 @@ class GameClient(protocol.Protocol):
         #print("sending: HELLO_SERVER")
 
 
-    def dataReceived(self, data):
-        ''' Receive data from server. Called automatically by Twisted. '''
-        print("Server:", data)
+    def server_join_setup(self):
+        ''' This loop waits and deals with initial connection to the server.
+        It hands game logic to 'game_tick()' afterwards '''
+        
+        print('Attempting to handshake!')
 
-        # decode data:
-        conv_data = bytes_to_json(data)
-        update_fields = [('px', 'pos_east_west'), ('py' ,'pos_north_south'), ('altitude', 'altitude')]
-        if conv_data['entity'] == 'pixy':
-            for field in update_fields:
-                pixy_entity = LATCH.pixy_entity
-                value = conv_data[field[0]]
-                LATCH.set_aircaft_data_float(value=value,
-                                             aircraft=pixy_entity,
-                                             field=field[1])
+        handshake_packet = {
+            'packet_type': 'handshake',
+            'player_name': self.factory.player_name
+        }
+
+        encoded = json.dumps(handshake_packet).encode('utf-8')
+        self.transport.write(encoded)
+        
 
 
+        ################
+        # Exit condition
+        if self.handshaked:
+            print('Handshake done!')
+            self.join_loop.stop() # Stop this loop
 
-    def connectionLost(self, reason):
-        print("Connection lost:", reason)
-        if self.loop.running:
-            self.loop.stop()
 
     def game_tick(self):
         '''
@@ -69,16 +84,52 @@ class GameClient(protocol.Protocol):
         self.transport.write(encoded)
 
 
+    def dataReceived(self, data):
+        ''' Receive data from server. Called automatically by Twisted. '''
+        print("Server:", data)
+
+        if not self.handshaked:
+            pass
+
+        else:
+            # decode data:
+            conv_data = bytes_to_json(data)
+            update_fields = [('px', 'pos_east_west'), ('py' ,'pos_north_south'), ('altitude', 'altitude')]
+            if conv_data['entity'] == 'pixy':
+                for field in update_fields:
+                    pixy_entity = LATCH.pixy_entity
+                    value = conv_data[field[0]]
+                    LATCH.set_aircaft_data_float(value=value,
+                                                aircraft=pixy_entity,
+                                                field=field[1])
+
+
+
+    def connectionLost(self, reason):
+        print("Connection lost:", reason)
+        if self.loop.running:
+            self.loop.stop()
+
+    
+
+
 class GameClientFactory(protocol.ClientFactory):
     protocol = GameClient
+    
+    
+    join_loop_successful:bool = False
+    def __init__(self):
+        self.player_name = 'UNNAMED'
+        
+        
 
     def clientConnectionFailed(self, connector, reason):
         print('Connection failed:', reason)
-        reactor.stop()
+        reactor.stop() # type: ignore
 
     def clientConnectionLost(self, connector, reason):
         print('Connection lost:', reason)
-        reactor.stop()
+        reactor.stop() # type: ignore
 
 
 def bytes_to_json(data: bytes) -> dict:
@@ -95,5 +146,5 @@ def bytes_to_json(data: bytes) -> dict:
     
 
 if __name__ == '__main__':
-    reactor.connectTCP(SERVER_HOST, SERVER_PORT, GameClientFactory())
-    reactor.run()
+    reactor.connectTCP(SERVER_HOST, SERVER_PORT, GameClientFactory()) # type: ignore
+    reactor.run() # type: ignore

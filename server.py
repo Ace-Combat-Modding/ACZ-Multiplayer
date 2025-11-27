@@ -7,6 +7,9 @@ class GameProtocol(Protocol):
     factory = None  # type: GameFactory # type: ignore
     transport = None  # type: ITransport # type: ignore
     
+    def __init__(self):
+        self.handshaked:bool = False
+    
     def bytes_to_json(self, data: bytes) -> dict:
         '''
         Converts bytes received from the client into a JSON object (dict).
