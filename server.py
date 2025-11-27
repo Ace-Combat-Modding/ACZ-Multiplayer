@@ -1,9 +1,10 @@
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
+from twisted.protocols.basic import Int32StringReceiver
 import json
 import uuid
 
-class GameProtocol(Protocol):
+class GameProtocol(Int32StringReceiver):
     factory = None  # type: GameFactory # type: ignore
     transport = None  # type: ITransport # type: ignore
     
@@ -37,7 +38,7 @@ class GameProtocol(Protocol):
         for client in self.factory.clients:
             print(f'- {client}')
         
-    def dataReceived(self, data):
+    def stringReceived(self, data):
         print(f'Received -- {data}')
         conv_data = self.bytes_to_json(data)
 
@@ -47,23 +48,22 @@ class GameProtocol(Protocol):
                 for client in self.factory.clients:
                     if client['object'] == self:
                         client['player_name'] = conv_data['player_name']
+                        # Send handshake confirmation message to client
+                        handshake_packet = {'packet_type': 'handshake', 'handshake_status': 'complete'}
+                        encoded = json.dumps(handshake_packet).encode('utf-8')
+                        self.sendString(encoded)
+                        self.handshaked = True
 
 
-        
         
         for client in self.factory.clients:
-            
-
-
-            if client is not self:
-                pass
-            if False: #else:
+            if client['object'] == self: # Send back player data as if it were pixy's
                 conv_data = self.bytes_to_json(data)
-                if conv_data['entity'] == 'player':
-                    pass
+                if conv_data['packet_type'] == 'game' and conv_data['entity'] == 'player':
                     new_px = float(conv_data['px']) + 100
                     
                     packet = {
+                        'packet_type': 'game',
                         'entity': 'pixy',
                         'px': new_px, # Returns pixy a bit offset from the player
                         'py': conv_data['py'],
@@ -71,7 +71,7 @@ class GameProtocol(Protocol):
                     }
 
                     encoded = json.dumps(packet).encode('utf-8')
-                    client.transport.write(encoded)
+                    client['object'].sendString(encoded)
             
             
 

@@ -1,18 +1,19 @@
 from twisted.internet import reactor, protocol, task
+from twisted.protocols.basic import Int32StringReceiver
 import json
 import time
 
 import game_latch as gl
 
 #CLIENT_NAME = 'UNNAMED'
-TICK_RATE = 60  # ticks per second
+TICK_RATE = 120  # ticks per second
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 1234
 
 GAME_PROCESS_NAME = "pcsx2.exe"
 LATCH = gl.GameLatch(process_name=GAME_PROCESS_NAME)
 
-class GameClient(protocol.Protocol):
+class GameClient(Int32StringReceiver):
     factory = None  # type: GameClientFactory # type: ignore
     transport = None  # type: ITransport # type: ignore
 
@@ -48,7 +49,7 @@ class GameClient(protocol.Protocol):
         }
 
         encoded = json.dumps(handshake_packet).encode('utf-8')
-        self.transport.write(encoded)
+        self.sendString(encoded)
         
 
 
@@ -56,12 +57,11 @@ class GameClient(protocol.Protocol):
         # Exit condition
         if self.handshaked:
             print('Handshake done!')
-            self.join_loop.stop() # Stop this loop
-
             print("Connected to server!")
             # Start the game loop
             self.loop = task.LoopingCall(self.game_tick)
             self.loop.start(1.0 / TICK_RATE)
+            self.join_loop.stop() # Stop this loop
 
 
     def game_tick(self):
@@ -69,6 +69,7 @@ class GameClient(protocol.Protocol):
         This runs at your TICK_RATE.
         Poll your game state here and send packets if needed.
         '''
+        print('game tick')
 
         player_data = LATCH.get_player_data('altitude')
 
@@ -76,6 +77,7 @@ class GameClient(protocol.Protocol):
 
         # Example: send a JSON state packet
         packet = {
+            'packet_type': 'game',
             'entity': 'player',
             'px': LATCH.get_player_data('pos_east_west'),
             'py': LATCH.get_player_data('pos_north_south'),
@@ -83,27 +85,33 @@ class GameClient(protocol.Protocol):
         }
 
         encoded = json.dumps(packet).encode('utf-8')
-        self.transport.write(encoded)
+        self.sendString(encoded)
 
 
-    def dataReceived(self, data):
+    def stringReceived(self, data):
         ''' Receive data from server. Called automatically by Twisted. '''
         print(f'Received -- {data}')
-
-        if not self.handshaked:
-            pass
-
+        conv_data = bytes_to_json(data)
+        
+        # Handshake procedure
+        if (not self.handshaked):
+            if conv_data['packet_type'] == 'handshake':
+                if conv_data['handshake_status'] == 'complete':
+                    self.handshaked = True
+                    print('Handshake Completed!')
+                    
         else:
             # decode data:
             conv_data = bytes_to_json(data)
             update_fields = [('px', 'pos_east_west'), ('py' ,'pos_north_south'), ('altitude', 'altitude')]
-            if conv_data['entity'] == 'pixy':
-                for field in update_fields:
-                    pixy_entity = LATCH.pixy_entity
-                    value = conv_data[field[0]]
-                    LATCH.set_aircaft_data_float(value=value,
-                                                aircraft=pixy_entity,
-                                                field=field[1])
+            if conv_data['packet_type'] == 'game':
+                if conv_data['entity'] == 'pixy':
+                    for field in update_fields:
+                        pixy_entity = LATCH.pixy_entity
+                        value = conv_data[field[0]]
+                        LATCH.set_aircaft_data_float(value=value,
+                                                    aircraft=pixy_entity,
+                                                    field=field[1])
 
 
 
@@ -113,13 +121,13 @@ class GameClient(protocol.Protocol):
             if self.loop.running:
                 self.loop.stop()
         except:
-            print('fuck! main loop stopped')
+            print('fuck! main loop error!')
         
         try:
             if self.join_loop.running:
                 self.join_loop.stop()
         except:
-            print('fuck! join loop stopped')
+            print('fuck! join loop error!')
 
     
 
@@ -143,14 +151,14 @@ class GameClientFactory(protocol.ClientFactory):
         reactor.stop() # type: ignore
 
 
-def bytes_to_json(data: bytes) -> dict:
+def bytes_to_json(data:bytes) -> dict:
     '''
     Converts bytes received from the client into a JSON object (dict).
     Raises ValueError if the data is not valid JSON.
     '''
     try:
-        text = data.decode("utf-8")     # bytes → string
-        return json.loads(text)         # string → dict
+        text = data.decode("utf-8")
+        return json.loads(text)
     except Exception as e:
         print("JSON decode error:", e)
         return {'': ''}
