@@ -21,7 +21,7 @@ class GameProtocol(Protocol):
 
     def connectionMade(self):
         uid = uuid.uuid4()
-        client_data = (self, uid)
+        client_data = {'object': self, 'uuid': uid}
         self.factory.clients.append(client_data) # type: ignore
 
         #self.factory.clients.append(self) # type: ignore
@@ -62,7 +62,7 @@ class GameProtocol(Protocol):
         #self.factory.clients.remove(self) # type: ignore
 
         for client in self.factory.clients:
-            if client[0] == self:
+            if client['object'] == self:
                 self.factory.clients.remove(client)
 
 
