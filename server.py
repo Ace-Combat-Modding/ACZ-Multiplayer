@@ -1,6 +1,7 @@
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import reactor
 import json
+import uuid
 
 class GameProtocol(Protocol):
     factory = None  # type: GameFactory # type: ignore
@@ -19,9 +20,17 @@ class GameProtocol(Protocol):
             return {'': ''}
 
     def connectionMade(self):
-        print("Client connected:", self.transport.getPeer())
+        uid = uuid.uuid4()
         self.factory.clients.append(self) # type: ignore
 
+        # client (uuid)
+
+        print("Client connected:", self.transport.getPeer())
+        
+        print(f'Clients present: {len(self.factory.clients)}')
+        for client in self.factory.clients:
+            print(f'- {client}')
+        
     def dataReceived(self, data):
         # Relay to all other clients
         for client in self.factory.clients:
@@ -49,9 +58,14 @@ class GameProtocol(Protocol):
         print("Client disconnected:", reason)
         self.factory.clients.remove(self) # type: ignore
 
+        print(f'Clients remaining: {len(self.factory.clients)}')
+        for client in self.factory.clients:
+            print(f'- {client}')
+
 class GameFactory(Factory):
     protocol = GameProtocol
     clients = []
+    client_increment = 0
 
 factory = GameFactory()
 reactor.listenTCP(1234, factory) # type: ignore
