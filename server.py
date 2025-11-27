@@ -21,7 +21,10 @@ class GameProtocol(Protocol):
 
     def connectionMade(self):
         uid = uuid.uuid4()
-        self.factory.clients.append(self) # type: ignore
+        client_data = (self, uid)
+        self.factory.clients.append(client_data) # type: ignore
+
+        #self.factory.clients.append(self) # type: ignore
 
         # client (uuid)
 
@@ -56,7 +59,13 @@ class GameProtocol(Protocol):
 
     def connectionLost(self, reason):
         print("Client disconnected:", reason)
-        self.factory.clients.remove(self) # type: ignore
+        #self.factory.clients.remove(self) # type: ignore
+
+        for client in self.factory.clients:
+            if client[0] == self:
+                self.factory.clients.remove(client)
+
+
 
         print(f'Clients remaining: {len(self.factory.clients)}')
         for client in self.factory.clients:
