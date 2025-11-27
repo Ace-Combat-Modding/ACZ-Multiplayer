@@ -24,7 +24,7 @@ class GameProtocol(Protocol):
 
     def connectionMade(self):
         uid = uuid.uuid4()
-        client_data = {'object': self, 'uuid': uid}
+        client_data = {'object': self, 'uuid': uid, 'player_name': ''}
         self.factory.clients.append(client_data) # type: ignore
 
         #self.factory.clients.append(self) # type: ignore
@@ -38,11 +38,26 @@ class GameProtocol(Protocol):
             print(f'- {client}')
         
     def dataReceived(self, data):
-        # Relay to all other clients
+        print(f'Received -- {data}')
+        conv_data = self.bytes_to_json(data)
+
+        # Handshake procedure
+        if (not self.handshaked):
+            if conv_data['packet_type'] == 'handshake':
+                for client in self.factory.clients:
+                    if client['object'] == self:
+                        client['player_name'] = conv_data['player_name']
+
+
+        
+        
         for client in self.factory.clients:
+            
+
+
             if client is not self:
                 pass
-            else:
+            if False: #else:
                 conv_data = self.bytes_to_json(data)
                 if conv_data['entity'] == 'player':
                     pass

@@ -25,14 +25,11 @@ class GameClient(protocol.Protocol):
 
         # Start the join loop
         self.join_loop = task.LoopingCall(self.server_join_setup)
-        self.join_loop.start(1.0 / 5)
+        self.join_loop.start(1.0)
 
         
         
-        print("Connected to server!")
-        # Start the game loop
-        self.loop = task.LoopingCall(self.game_tick)
-        self.loop.start(1.0 / TICK_RATE)
+        
 
         # Example initial message
         #self.transport.write(b"HELLO_SERVER")
@@ -61,6 +58,11 @@ class GameClient(protocol.Protocol):
             print('Handshake done!')
             self.join_loop.stop() # Stop this loop
 
+            print("Connected to server!")
+            # Start the game loop
+            self.loop = task.LoopingCall(self.game_tick)
+            self.loop.start(1.0 / TICK_RATE)
+
 
     def game_tick(self):
         '''
@@ -86,7 +88,7 @@ class GameClient(protocol.Protocol):
 
     def dataReceived(self, data):
         ''' Receive data from server. Called automatically by Twisted. '''
-        print("Server:", data)
+        print(f'Received -- {data}')
 
         if not self.handshaked:
             pass
@@ -107,8 +109,17 @@ class GameClient(protocol.Protocol):
 
     def connectionLost(self, reason):
         print("Connection lost:", reason)
-        if self.loop.running:
-            self.loop.stop()
+        try:
+            if self.loop.running:
+                self.loop.stop()
+        except:
+            print('fuck! main loop stopped')
+        
+        try:
+            if self.join_loop.running:
+                self.join_loop.stop()
+        except:
+            print('fuck! join loop stopped')
 
     
 
