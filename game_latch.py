@@ -14,10 +14,9 @@ class Aircraft:
             'altitude': self.struct_start_add + 0x264,
             'pos_north_south': self.struct_start_add + 0x268,
             'unk1': self.struct_start_add + 0x26C,
-            'unk2': self.struct_start_add + 0x270,
+            'pitch': self.struct_start_add + 0x270,
             'yaw': self.struct_start_add + 0x274,
             'roll': self.struct_start_add + 0x278,
-            'pitch': self.struct_start_add + 0x2A0,
             'unk3': self.struct_start_add + 0x27C,
             'obj_string': objstring_add
         }
