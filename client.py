@@ -7,7 +7,7 @@ import game_latch as gl
 
 #CLIENT_NAME = 'UNNAMED'
 TICK_RATE = 120  # ticks per second
-SERVER_HOST = "127.0.0.1"
+SERVER_HOST = '192.168.0.172' #"127.0.0.1"
 SERVER_PORT = 1234
 
 GAME_PROCESS_NAME = "pcsx2.exe"
@@ -83,7 +83,8 @@ class GameClient(Int32StringReceiver):
             'py': LATCH.get_player_data('pos_north_south'),
             'altitude': LATCH.get_player_data('altitude'),
             'roll': LATCH.get_player_data('roll'),
-            'yaw': LATCH.get_player_data('yaw')
+            'yaw': LATCH.get_player_data('yaw'),
+            'pitch': LATCH.get_player_data('pitch')
         }
 
         encoded = json.dumps(packet).encode('utf-8')
@@ -105,7 +106,7 @@ class GameClient(Int32StringReceiver):
         else:
             # decode data:
             conv_data = bytes_to_json(data)
-            update_fields = [('px', 'pos_east_west'), ('py' ,'pos_north_south'), ('altitude', 'altitude'), ('roll', 'roll'), ('yaw', 'yaw')]
+            update_fields = [('px', 'pos_east_west'), ('py' ,'pos_north_south'), ('altitude', 'altitude'), ('roll', 'roll'), ('yaw', 'yaw'), ('pitch', 'pitch')]
             if conv_data['packet_type'] == 'game':
                 if conv_data['entity'] == 'pixy':
                     for field in update_fields:

@@ -69,7 +69,8 @@ class GameProtocol(Int32StringReceiver):
                         'py': conv_data['py'],
                         'altitude': conv_data['altitude'],
                         'roll': conv_data['roll'],
-                        'yaw': conv_data['yaw']
+                        'yaw': conv_data['yaw'],
+                        'pitch': conv_data['pitch']
                     }
 
                     encoded = json.dumps(packet).encode('utf-8')
