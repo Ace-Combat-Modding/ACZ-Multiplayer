@@ -69,7 +69,7 @@ class GameClient(Int32StringReceiver):
         This runs at your TICK_RATE.
         Poll your game state here and send packets if needed.
         '''
-        print('game tick')
+        #print('game tick')
 
         player_data = LATCH.get_player_data('altitude')
 
@@ -82,6 +82,8 @@ class GameClient(Int32StringReceiver):
             'px': LATCH.get_player_data('pos_east_west'),
             'py': LATCH.get_player_data('pos_north_south'),
             'altitude': LATCH.get_player_data('altitude'),
+            'roll': LATCH.get_player_data('roll'),
+            'yaw': LATCH.get_player_data('yaw')
         }
 
         encoded = json.dumps(packet).encode('utf-8')
@@ -103,7 +105,7 @@ class GameClient(Int32StringReceiver):
         else:
             # decode data:
             conv_data = bytes_to_json(data)
-            update_fields = [('px', 'pos_east_west'), ('py' ,'pos_north_south'), ('altitude', 'altitude')]
+            update_fields = [('px', 'pos_east_west'), ('py' ,'pos_north_south'), ('altitude', 'altitude'), ('roll', 'roll'), ('yaw', 'yaw')]
             if conv_data['packet_type'] == 'game':
                 if conv_data['entity'] == 'pixy':
                     for field in update_fields:

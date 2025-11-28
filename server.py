@@ -60,14 +60,16 @@ class GameProtocol(Int32StringReceiver):
             if client['object'] != self: # Send back player data as if it were pixy's
                 conv_data = self.bytes_to_json(data)
                 if conv_data['packet_type'] == 'game' and conv_data['entity'] == 'player':
-                    new_px = float(conv_data['px']) + 100
+                    #new_px = float(conv_data['px']) + 100
                     
                     packet = {
                         'packet_type': 'game',
                         'entity': 'pixy',
-                        'px': new_px, # Returns pixy a bit offset from the player
+                        'px': conv_data['px'],
                         'py': conv_data['py'],
                         'altitude': conv_data['altitude'],
+                        'roll': conv_data['roll'],
+                        'yaw': conv_data['yaw']
                     }
 
                     encoded = json.dumps(packet).encode('utf-8')
