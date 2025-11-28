@@ -57,7 +57,7 @@ class GameProtocol(Int32StringReceiver):
 
         
         for client in self.factory.clients:
-            if client['object'] == self: # Send back player data as if it were pixy's
+            if client['object'] != self: # Send back player data as if it were pixy's
                 conv_data = self.bytes_to_json(data)
                 if conv_data['packet_type'] == 'game' and conv_data['entity'] == 'player':
                     new_px = float(conv_data['px']) + 100
